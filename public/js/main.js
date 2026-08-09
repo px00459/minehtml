@@ -1,10 +1,10 @@
 // Main entry point - DOM setup only, NO game logic or Three.js code here
 
-import { SceneManager } from '../src/core/SceneManager.js';
-import { EventBus } from '../src/core/EventBus.js';
-import { PhysicsManager } from '../src/core/PhysicsManager.js';
-import { Player } from '../src/game/Player.js';
-import { World } from '../src/game/World.js';
+import { SceneManager } from '../../src/core/SceneManager.js';
+import { EventBus } from '../../src/core/EventBus.js';
+import { PhysicsManager } from '../../src/core/PhysicsManager.js';
+import { Player } from '../../src/game/Player.js';
+import { World } from '../../src/game/World.js';
 
 // Get canvas
 const canvas = document.getElementById('gameCanvas');
