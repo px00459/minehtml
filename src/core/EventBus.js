@@ -10,6 +10,8 @@ class EventBus {
             return EventBus.instance;
         }
         this.listeners = {};
+        // Track listener subscriptions for cleanup: Map<callback, Set<eventNames>>
+        this.listenerRegistry = new WeakMap();
         EventBus.instance = this;
     }
     
@@ -30,6 +32,12 @@ class EventBus {
             this.listeners[event] = [];
         }
         this.listeners[event].push(callback);
+        
+        // Track this subscription for cleanup
+        if (!this.listenerRegistry.has(callback)) {
+            this.listenerRegistry.set(callback, new Set());
+        }
+        this.listenerRegistry.get(callback).add(event);
     }
     
     /**
@@ -40,6 +48,28 @@ class EventBus {
     off(event, callback) {
         if (!this.listeners[event]) return;
         this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+        
+        // Remove from registry
+        if (this.listenerRegistry.has(callback)) {
+            const events = this.listenerRegistry.get(callback);
+            events.delete(event);
+            if (events.size === 0) {
+                this.listenerRegistry.delete(callback);
+            }
+        }
+    }
+    
+    /**
+     * Remove all listeners for a specific callback
+     * @param {function} callback - Callback function to remove completely
+     */
+    removeAllListeners(callback) {
+        if (!this.listenerRegistry.has(callback)) return;
+        
+        const events = this.listenerRegistry.get(callback);
+        for (const event of events) {
+            this.off(event, callback);
+        }
     }
     
     /**
@@ -70,6 +100,7 @@ class EventBus {
             delete this.listeners[event];
         } else {
             this.listeners = {};
+            this.listenerRegistry = new WeakMap();
         }
     }
 }

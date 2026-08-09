@@ -31,11 +31,17 @@ class World {
         // Block type for placement (default: dirt)
         this.selectedBlockType = BLOCK_TYPES.DIRT;
         
+        // Store bound callbacks for cleanup
+        this.boundOnPlayerMoved = this.onPlayerMoved.bind(this);
+        this.boundOnBlockBreak = this.onBlockBreak.bind(this);
+        this.boundOnBlockPlace = this.onBlockPlace.bind(this);
+        this.boundOnBlockSelected = this.onBlockSelected.bind(this);
+        
         // Subscribe to events
-        this.eventBus.on('player:moved', this.onPlayerMoved.bind(this));
-        this.eventBus.on('player:blockBreak', this.onBlockBreak.bind(this));
-        this.eventBus.on('player:blockPlace', this.onBlockPlace.bind(this));
-        this.eventBus.on('player:blockSelected', this.onBlockSelected.bind(this));
+        this.eventBus.on('player:moved', this.boundOnPlayerMoved);
+        this.eventBus.on('player:blockBreak', this.boundOnBlockBreak);
+        this.eventBus.on('player:blockPlace', this.boundOnBlockPlace);
+        this.eventBus.on('player:blockSelected', this.boundOnBlockSelected);
     }
     
     /**
@@ -293,6 +299,23 @@ class World {
         if (this.lastPlayerChunkX === null) {
             this.updateChunks(0, 0);
         }
+    }
+    
+    /**
+     * Cleanup resources
+     */
+    dispose() {
+        // Remove all event listeners
+        this.eventBus.removeAllListeners(this.boundOnPlayerMoved);
+        this.eventBus.removeAllListeners(this.boundOnBlockBreak);
+        this.eventBus.removeAllListeners(this.boundOnBlockPlace);
+        this.eventBus.removeAllListeners(this.boundOnBlockSelected);
+        
+        // Dispose all chunks
+        for (const chunk of this.chunks.values()) {
+            chunk.dispose();
+        }
+        this.chunks.clear();
     }
 }
 
