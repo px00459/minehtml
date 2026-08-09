@@ -2,25 +2,26 @@
 
 import { SceneManager } from '../src/core/SceneManager.js';
 import { EventBus } from '../src/core/EventBus.js';
+import { PhysicsManager } from '../src/core/PhysicsManager.js';
 import { Player } from '../src/game/Player.js';
 import { World } from '../src/game/World.js';
 
 // Get canvas
 const canvas = document.getElementById('gameCanvas');
 
-// Create SceneManager (handles Three.js scene, camera, renderer)
-const sceneManager = new SceneManager(canvas);
+// Create managers
+const eventBus = new EventBus();
+const physicsManager = new PhysicsManager();
+const sceneManager = new SceneManager(canvas, eventBus);
 
-// Get event bus instance
-const eventBus = EventBus.getInstance();
-
-// Create game subjects
-const world = new World(sceneManager.scene, sceneManager.camera);
-const player = new Player(sceneManager.scene, sceneManager.camera, eventBus);
+// Create game subjects - pass all dependencies
+const world = new World(sceneManager.scene, sceneManager.camera, eventBus, physicsManager);
+const player = new Player(sceneManager.scene, sceneManager.camera, eventBus, physicsManager);
 
 // Register subjects with SceneManager
 sceneManager.addSubject(world);
 sceneManager.addSubject(player);
+sceneManager.addSubject(physicsManager);
 
 // Handle window resize
 window.addEventListener('resize', () => {

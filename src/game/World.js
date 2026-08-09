@@ -6,9 +6,11 @@ import { Chunk, BLOCK_TYPES, CHUNK_SIZE, CHUNK_HEIGHT } from './Chunk.js';
  * Handles terrain generation and block placement/removal
  */
 class World {
-    constructor(scene, camera) {
+    constructor(scene, camera, eventBus, physicsManager) {
         this.scene = scene;
         this.camera = camera;
+        this.eventBus = eventBus;
+        this.physicsManager = physicsManager;
         
         // Map of loaded chunks: key = "chunkX,chunkZ", value = Chunk
         this.chunks = new Map();
@@ -29,14 +31,11 @@ class World {
         // Block type for placement (default: dirt)
         this.selectedBlockType = BLOCK_TYPES.DIRT;
         
-        // Get EventBus instance
-        import('../core/EventBus.js').then(({ EventBus }) => {
-            const eventBus = EventBus.getInstance();
-            eventBus.on('player:moved', this.onPlayerMoved.bind(this));
-            eventBus.on('player:blockBreak', this.onBlockBreak.bind(this));
-            eventBus.on('player:blockPlace', this.onBlockPlace.bind(this));
-            eventBus.on('player:blockSelected', this.onBlockSelected.bind(this));
-        });
+        // Subscribe to events
+        this.eventBus.on('player:moved', this.onPlayerMoved.bind(this));
+        this.eventBus.on('player:blockBreak', this.onBlockBreak.bind(this));
+        this.eventBus.on('player:blockPlace', this.onBlockPlace.bind(this));
+        this.eventBus.on('player:blockSelected', this.onBlockSelected.bind(this));
     }
     
     /**

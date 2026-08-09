@@ -5,8 +5,9 @@ import * as THREE from 'three';
  * Manages scene, camera, renderer, and SceneSubjects
  */
 class SceneManager {
-    constructor(canvas) {
+    constructor(canvas, eventBus) {
         this.canvas = canvas;
+        this.eventBus = eventBus;
         
         // Initialize Three.js components
         this.scene = new THREE.Scene();
@@ -113,7 +114,7 @@ class SceneManager {
         requestAnimationFrame(() => this.animate());
         
         const currentTime = performance.now();
-        const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
+        const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1); // Cap delta time
         this.lastTime = currentTime;
         
         // Update all subjects
