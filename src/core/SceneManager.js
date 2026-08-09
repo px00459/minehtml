@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GameConfig } from '../core/GameConfig.js';
 
 /**
  * SceneManager - Central orchestrator for Three.js scene management
@@ -11,15 +12,19 @@ class SceneManager {
         
         // Initialize Three.js components
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x87CEEB); // Sky blue
-        this.scene.fog = new THREE.Fog(0x87CEEB, 50, 150); // Linear fog to hide chunk pop-in
+        this.scene.background = new THREE.Color(GameConfig.DISPLAY.SKY_COLOR);
+        this.scene.fog = new THREE.Fog(
+            GameConfig.DISPLAY.SKY_COLOR,
+            GameConfig.DISPLAY.FOG_START,
+            GameConfig.DISPLAY.FOG_END
+        );
         
         // Camera
         this.camera = new THREE.PerspectiveCamera(
-            75, // FOV
-            window.innerWidth / window.innerHeight, // Aspect ratio
-            0.1, // Near plane
-            1000 // Far plane
+            GameConfig.DISPLAY.FOV,
+            window.innerWidth / window.innerHeight,
+            GameConfig.DISPLAY.NEAR_PLANE,
+            GameConfig.DISPLAY.FAR_PLANE
         );
         this.camera.position.set(0, 30, 0);
         
@@ -29,7 +34,7 @@ class SceneManager {
             antialias: true
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, GameConfig.DISPLAY.PIXEL_RATIO_MAX));
         
         // Lighting
         this.setupLighting();
@@ -50,12 +55,22 @@ class SceneManager {
      */
     setupLighting() {
         // Ambient light
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(
+            0xffffff,
+            GameConfig.LIGHTING.AMBIENT_INTENSITY
+        );
         this.scene.add(ambientLight);
         
         // Directional light (sun)
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(100, 100, 50);
+        const directionalLight = new THREE.DirectionalLight(
+            0xffffff,
+            GameConfig.LIGHTING.DIRECTIONAL_INTENSITY
+        );
+        directionalLight.position.set(
+            GameConfig.LIGHTING.SUN_POSITION.x,
+            GameConfig.LIGHTING.SUN_POSITION.y,
+            GameConfig.LIGHTING.SUN_POSITION.z
+        );
         this.scene.add(directionalLight);
     }
     
@@ -68,12 +83,16 @@ class SceneManager {
     }
     
     /**
-     * Remove a SceneSubject
+     * Remove a SceneSubject and cleanup its resources
      * @param {Object} subject - Subject to remove
      */
     removeSubject(subject) {
         const index = this.subjects.indexOf(subject);
         if (index > -1) {
+            // Cleanup subject resources if it has dispose method
+            if (subject.dispose) {
+                subject.dispose();
+            }
             this.subjects.splice(index, 1);
         }
     }
@@ -87,6 +106,27 @@ class SceneManager {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
     
+    /**
+     * Stop the animation loop and cleanup resources
+     */
+    dispose() {
+        this.stop();
+        
+        // Remove all subjects
+        for (const subject of [...this.subjects]) {
+            if (subject.dispose) {
+                subject.dispose();
+            }
+        }
+        this.subjects = [];
+        
+        // Dispose renderer
+        this.renderer.dispose();
+        
+        // Remove event listeners
+        window.removeEventListener('resize', this.onWindowResize);
+    }
+
     /**
      * Start the animation loop
      */
@@ -114,7 +154,10 @@ class SceneManager {
         requestAnimationFrame(() => this.animate());
         
         const currentTime = performance.now();
-        const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1); // Cap delta time
+        const deltaTime = Math.min(
+            (currentTime - this.lastTime) / 1000,
+            GameConfig.PERFORMANCE.MAX_DELTA_TIME
+        );
         this.lastTime = currentTime;
         
         // Update all subjects

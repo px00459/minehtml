@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { GameConfig } from '../core/GameConfig.js';
 
 /**
  * Player - SceneSubject that handles player movement and interaction
@@ -21,10 +22,10 @@ class Player {
         this.canJump = false;
         this.isSprinting = false;
         
-        // Movement settings
-        this.moveSpeed = 8;
-        this.jumpForce = 7;
-        this.sprintMultiplier = 1.6;
+        // Movement settings from config
+        this.moveSpeed = GameConfig.PLAYER.MOVE_SPEED;
+        this.jumpForce = GameConfig.PLAYER.JUMP_FORCE;
+        this.sprintMultiplier = GameConfig.PLAYER.SPRINT_MULTIPLIER;
         
         // Physics body (capsule)
         this.createPhysicsBody();
@@ -42,8 +43,11 @@ class Player {
         // Setup input listeners
         this.setupInputListeners();
         
+        // Store bound callback reference for cleanup
+        this.boundOnHotbarChanged = this.onHotbarChanged.bind(this);
+        
         // Subscribe to events
-        this.eventBus.on('hotbar:changed', this.onHotbarChanged.bind(this));
+        this.eventBus.on('hotbar:changed', this.boundOnHotbarChanged);
         
         // Mouse click handling for block interaction
         this.setupInteraction();
@@ -56,8 +60,8 @@ class Player {
      * Create Cannon.js capsule body for player
      */
     createPhysicsBody() {
-        const radius = 0.4;
-        const height = 1.8;
+        const radius = GameConfig.PLAYER.RADIUS;
+        const height = GameConfig.PLAYER.HEIGHT;
         
         // Create capsule shape using Cylinder in Cannon.js
         // Cannon.js Cylinder is aligned along Z-axis, so we need to rotate it
@@ -69,7 +73,7 @@ class Player {
         
         // Create body
         this.body = new CANNON.Body({
-            mass: 70, // kg
+            mass: GameConfig.PLAYER.MASS,
             material: this.physicsManager.defaultMaterial,
             linearDamping: 0.9,
             angularDamping: 1.0,
@@ -296,6 +300,9 @@ class Player {
      * Cleanup resources
      */
     dispose() {
+        // Remove event listeners
+        this.eventBus.removeAllListeners(this.boundOnHotbarChanged);
+        
         this.physicsManager.removeBody(this.body);
         if (this.mesh) {
             this.scene.remove(this.mesh);

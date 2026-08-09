@@ -3,6 +3,7 @@ import * as CANNON from 'cannon-es';
 /**
  * PhysicsManager - Wrapper for Cannon.js physics world
  * Manages physics bodies and handles fixed timestep updates
+ * Implements SceneSubject interface for SceneManager integration
  */
 class PhysicsManager {
     constructor() {
@@ -30,6 +31,9 @@ class PhysicsManager {
         
         // Fixed timestep for deterministic physics
         this.fixedTimeStep = 1 / 60;
+        
+        // Accumulator for fixed timestep
+        this.accumulator = 0;
     }
     
     /**
@@ -60,6 +64,21 @@ class PhysicsManager {
      */
     step(deltaTime) {
         this.world.step(this.fixedTimeStep, deltaTime, 3);
+    }
+    
+    /**
+     * Update method for SceneSubject interface
+     * Called by SceneManager each frame
+     * @param {number} deltaTime - Time since last update in seconds
+     */
+    update(deltaTime) {
+        // Accumulate time and step physics at fixed intervals
+        this.accumulator += deltaTime;
+        
+        while (this.accumulator >= this.fixedTimeStep) {
+            this.step(this.fixedTimeStep);
+            this.accumulator -= this.fixedTimeStep;
+        }
     }
     
     /**
@@ -96,6 +115,13 @@ class PhysicsManager {
         for (const body of [...this.bodies]) {
             this.removeBody(body);
         }
+    }
+    
+    /**
+     * Cleanup resources
+     */
+    dispose() {
+        this.clear();
     }
 }
 
