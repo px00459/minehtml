@@ -1,17 +1,17 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { PhysicsManager } from '../core/PhysicsManager.js';
 
 /**
  * Player - SceneSubject that handles player movement and interaction
  * Uses Cannon.js capsule collider for smooth physics
  */
 class Player {
-    constructor(scene, camera, eventBus) {
+    constructor(scene, camera, eventBus, physicsManager) {
         this.scene = scene;
         this.camera = camera;
         this.eventBus = eventBus;
+        this.physicsManager = physicsManager;
         
         // Input state
         this.moveForward = false;
@@ -27,7 +27,6 @@ class Player {
         this.sprintMultiplier = 1.6;
         
         // Physics body (capsule)
-        this.physicsManager = new PhysicsManager();
         this.createPhysicsBody();
         
         // Three.js mesh for visualization
@@ -60,13 +59,13 @@ class Player {
         const radius = 0.4;
         const height = 1.8;
         
-        // Create capsule shape
+        // Create capsule shape using Cylinder in Cannon.js
+        // Cannon.js Cylinder is aligned along Z-axis, so we need to rotate it
         const capsuleShape = new CANNON.Cylinder(radius, radius, height, 8);
         
-        // Rotate capsule to stand upright (Cannon cylinders are Z-aligned by default)
+        // Rotate the shape to align with Y-axis
         const quaternion = new CANNON.Quaternion();
         quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-        capsuleShape.transform(quaternion, new CANNON.Vec3(0, 0, 0));
         
         // Create body
         this.body = new CANNON.Body({
@@ -77,7 +76,8 @@ class Player {
             fixedRotation: true
         });
         
-        this.body.addShape(capsuleShape);
+        // Add shape with rotation
+        this.body.addShape(capsuleShape, new CANNON.Vec3(0, 0, 0), quaternion);
         this.body.position.set(0, 20, 0); // Start above terrain
         
         this.physicsManager.addBody(this.body);
@@ -152,7 +152,6 @@ class Player {
      * Setup mouse interaction for block placement/breaking
      */
     setupInteraction() {
-        // Get world reference through event bus
         document.addEventListener('mousedown', (event) => {
             if (!this.controls.isLocked) return;
             
@@ -207,17 +206,16 @@ class Player {
             const controlsObj = this.controls.getObject();
             controlsObj.position.set(
                 this.body.position.x,
-                this.body.position.y + 0.5, // Eye height
+                this.body.position.y + 0.5, // Eye height (half of capsule height)
                 this.body.position.z
             );
         }
     }
     
     /**
-     * Check if player is grounded
+     * Check if player is grounded using raycast
      */
     checkGrounded() {
-        // Raycast down from player position to check if grounded
         const rayFrom = new CANNON.Vec3(
             this.body.position.x,
             this.body.position.y,
@@ -275,9 +273,6 @@ class Player {
      * Update method called by SceneManager each frame
      */
     update(deltaTime) {
-        // Step physics
-        this.physicsManager.step(deltaTime);
-        
         // Apply movement
         this.applyMovement(deltaTime);
         
@@ -301,7 +296,7 @@ class Player {
      * Cleanup resources
      */
     dispose() {
-        this.physicsManager.clear();
+        this.physicsManager.removeBody(this.body);
         if (this.mesh) {
             this.scene.remove(this.mesh);
             this.mesh.geometry.dispose();
