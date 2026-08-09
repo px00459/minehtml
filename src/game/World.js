@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Chunk, BLOCK_TYPES, CHUNK_SIZE, CHUNK_HEIGHT } from './Chunk.js';
+import { GameConfig } from '../core/GameConfig.js';
 
 /**
  * World - SceneSubject that manages chunk loading/unloading
@@ -16,8 +17,8 @@ class World {
         this.chunks = new Map();
         
         // Render distance settings
-        this.loadRadius = 4;  // Load chunks within this radius
-        this.unloadRadius = 5; // Unload chunks beyond this radius
+        this.loadRadius = GameConfig.CHUNK.LOAD_RADIUS;
+        this.unloadRadius = GameConfig.CHUNK.UNLOAD_RADIUS;
         
         // Player position tracking for chunk streaming
         this.lastPlayerChunkX = null;
@@ -26,22 +27,62 @@ class World {
         
         // Raycaster for block interaction
         this.raycaster = new THREE.Raycaster();
-        this.raycaster.far = 6; // 6 block reach
+        this.raycaster.far = GameConfig.PLAYER.REACH_DISTANCE;
         
         // Block type for placement (default: dirt)
         this.selectedBlockType = BLOCK_TYPES.DIRT;
+        
+        // Block highlight mesh
+        this.highlightMesh = null;
+        this.createHighlightMesh();
         
         // Store bound callbacks for cleanup
         this.boundOnPlayerMoved = this.onPlayerMoved.bind(this);
         this.boundOnBlockBreak = this.onBlockBreak.bind(this);
         this.boundOnBlockPlace = this.onBlockPlace.bind(this);
         this.boundOnBlockSelected = this.onBlockSelected.bind(this);
+        this.boundOnBlockHighlight = this.onBlockHighlight.bind(this);
         
         // Subscribe to events
         this.eventBus.on('player:moved', this.boundOnPlayerMoved);
         this.eventBus.on('player:blockBreak', this.boundOnBlockBreak);
         this.eventBus.on('player:blockPlace', this.boundOnBlockPlace);
         this.eventBus.on('player:blockSelected', this.boundOnBlockSelected);
+        this.eventBus.on('player:blockHighlight', this.boundOnBlockHighlight);
+    }
+    
+    /**
+     * Create highlight box mesh for block selection
+     */
+    createHighlightMesh() {
+        const geometry = new THREE.BoxGeometry(1.01, 1.01, 1.01);
+        const edges = new THREE.EdgesGeometry(geometry);
+        const material = new THREE.LineBasicMaterial({ 
+            color: 0x000000,
+            linewidth: 2
+        });
+        this.highlightMesh = new THREE.LineSegments(edges, material);
+        this.highlightMesh.visible = false;
+        this.scene.add(this.highlightMesh);
+    }
+    
+    /**
+     * Update highlight mesh position
+     */
+    updateHighlight(position) {
+        if (!position || !this.highlightMesh) {
+            if (this.highlightMesh) {
+                this.highlightMesh.visible = false;
+            }
+            return;
+        }
+        
+        this.highlightMesh.position.set(
+            position.x + 0.5,
+            position.y + 0.5,
+            position.z + 0.5
+        );
+        this.highlightMesh.visible = true;
     }
     
     /**
@@ -60,6 +101,7 @@ class World {
         const hit = this.raycast(data.camera);
         if (hit) {
             this.breakBlock(hit.breakPosition);
+            this.updateHighlight(null);
         }
     }
     
@@ -71,6 +113,7 @@ class World {
         const hit = this.raycast(data.camera);
         if (hit) {
             this.placeBlock(hit.placePosition);
+            this.updateHighlight(null);
         }
     }
     
@@ -79,6 +122,15 @@ class World {
      */
     onBlockSelected(data) {
         this.setSelectedBlock(data.slot);
+    }
+    
+    /**
+     * Handle block highlight event (from mouse move)
+     */
+    onBlockHighlight(data) {
+        if (!data || !data.camera) return;
+        // Trigger raycast to update highlight
+        this.raycast(data.camera);
     }
     
     /**
@@ -238,13 +290,20 @@ class World {
             const placeY = Math.floor(hit.point.y + normal.y * 0.5);
             const placeZ = Math.floor(hit.point.z + normal.z * 0.5);
             
-            return {
+            const result = {
                 breakPosition: { x: blockX, y: blockY, z: blockZ },
                 placePosition: { x: placeX, y: placeY, z: placeZ },
                 face: hit.face
             };
+            
+            // Update highlight mesh
+            this.updateHighlight(result.breakPosition);
+            
+            return result;
         }
         
+        // Hide highlight if no hit
+        this.updateHighlight(null);
         return null;
     }
     
@@ -310,6 +369,15 @@ class World {
         this.eventBus.removeAllListeners(this.boundOnBlockBreak);
         this.eventBus.removeAllListeners(this.boundOnBlockPlace);
         this.eventBus.removeAllListeners(this.boundOnBlockSelected);
+        this.eventBus.removeAllListeners(this.boundOnBlockHighlight);
+        
+        // Dispose highlight mesh
+        if (this.highlightMesh) {
+            this.scene.remove(this.highlightMesh);
+            this.highlightMesh.geometry.dispose();
+            this.highlightMesh.material.dispose();
+            this.highlightMesh = null;
+        }
         
         // Dispose all chunks
         for (const chunk of this.chunks.values()) {

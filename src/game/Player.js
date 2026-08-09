@@ -43,11 +43,13 @@ class Player {
         // Setup input listeners
         this.setupInputListeners();
         
-        // Store bound callback reference for cleanup
+        // Store bound callback references for cleanup
         this.boundOnHotbarChanged = this.onHotbarChanged.bind(this);
+        this.boundOnMouseMove = this.onMouseMove.bind(this);
         
         // Subscribe to events
         this.eventBus.on('hotbar:changed', this.boundOnHotbarChanged);
+        this.eventBus.on('player:mouseMove', this.boundOnMouseMove);
         
         // Mouse click handling for block interaction
         this.setupInteraction();
@@ -156,6 +158,18 @@ class Player {
      * Setup mouse interaction for block placement/breaking
      */
     setupInteraction() {
+        // Mouse move handler for block highlighting
+        const onMouseMove = (event) => {
+            if (!this.controls.isLocked) return;
+            
+            // Emit event for world to update highlight
+            this.eventBus.emit('player:mouseMove', {
+                camera: this.camera
+            });
+        };
+        
+        document.addEventListener('mousemove', onMouseMove);
+        
         document.addEventListener('mousedown', (event) => {
             if (!this.controls.isLocked) return;
             
@@ -185,6 +199,16 @@ class Player {
     onHotbarChanged(data) {
         // Forward to world for block type selection
         this.eventBus.emit('player:blockSelected', { slot: data.slot });
+    }
+    
+    /**
+     * Handle mouse move event (for block highlighting)
+     */
+    onMouseMove(data) {
+        // Forward to world for highlight update
+        this.eventBus.emit('player:blockHighlight', {
+            camera: this.camera
+        });
     }
     
     /**
@@ -302,6 +326,7 @@ class Player {
     dispose() {
         // Remove event listeners
         this.eventBus.removeAllListeners(this.boundOnHotbarChanged);
+        this.eventBus.removeAllListeners(this.boundOnMouseMove);
         
         this.physicsManager.removeBody(this.body);
         if (this.mesh) {
