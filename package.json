@@ -1,0 +1,25 @@
+{
+  "name": "voxel-sandbox",
+  "version": "1.0.0",
+  "description": "A production-ready voxel sandbox game with Three.js and Cannon.js",
+  "main": "server/server.js",
+  "scripts": {
+    "dev": "nodemon server/server.js",
+    "start": "node server/server.js"
+  },
+  "keywords": [
+    "voxel",
+    "sandbox",
+    "threejs",
+    "cannonjs",
+    "game"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

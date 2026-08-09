@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxel Sandbox</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Import maps for Three.js and Cannon.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+            "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <!-- Canvas container -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- UI Overlay -->
+    <div id="ui-overlay">
+        <!-- Crosshair -->
+        <div id="crosshair">+</div>
+        
+        <!-- Hotbar -->
+        <div id="hotbar">
+            <div class="hotbar-slot selected" data-slot="1">
+                <span class="slot-number">1</span>
+                <span class="block-name">Grass</span>
+            </div>
+            <div class="hotbar-slot" data-slot="2">
+                <span class="slot-number">2</span>
+                <span class="block-name">Dirt</span>
+            </div>
+            <div class="hotbar-slot" data-slot="3">
+                <span class="slot-number">3</span>
+                <span class="block-name">Stone</span>
+            </div>
+            <div class="hotbar-slot" data-slot="4">
+                <span class="slot-number">4</span>
+                <span class="block-name">Wood</span>
+            </div>
+            <div class="hotbar-slot" data-slot="5">
+                <span class="slot-number">5</span>
+                <span class="block-name">Leaves</span>
+            </div>
+            <div class="hotbar-slot" data-slot="6">
+                <span class="slot-number">6</span>
+                <span class="block-name">Sand</span>
+            </div>
+        </div>
+        
+        <!-- Start overlay -->
+        <div id="start-overlay">
+            <h1>Voxel Sandbox</h1>
+            <p>Click to play</p>
+            <div class="controls-info">
+                <p>WASD - Move</p>
+                <p>Space - Jump</p>
+                <p>Mouse - Look</p>
+                <p>Left Click - Break block</p>
+                <p>Right Click - Place block</p>
+                <p>1-6 - Select block</p>
+                <p>ESC - Release pointer</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main entry point -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
